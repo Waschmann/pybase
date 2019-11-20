@@ -11,6 +11,9 @@ def exhaust(iterable):
 def apply(f, iterable):
 	exhaust(map(f, iterable))
 
+def starapply(f, iterable):
+	exhaust(starmap(f, iterable))
+
 def advance(iterable, n):
 	exhaust(islice(iterable, n))
 
@@ -46,5 +49,32 @@ def rollstarmap(f, iterable, n):
 	Returns an Iterator yielding f(a_k, ..., a_k+n-1) for each k < len(iterable) - n. 
 	"""
 	return starmap(f, zip_adjacent(iterable, n))
+
+
+
+class jiter:
+	"""
+	just-in-time-iterator. 
+	Advances to idx if accessed & caches previous cache_limit values (using a deque). 
+	If cache_limit is None, caches all previous values
+	"""
+	def __init__(self, iterator, cache_limit=None):
+		self._iterator = iterator
+		self._cache_limit = cache_limit
+		self._cache = [] if cache_limit is None else deque(maxlen=cache_limit)
+		self._n = 0
+
+	def __getitem__(self, idx):
+		n = len(self)
+		if idx < n:
+			return self._cache[idx]
+		self._cache.extend(islice(self._iterator, 0, idx - n))
+		item = next(self._iterator)
+		self._cache.append(item)
+		self._n = idx + 1
+		return item
+
+	def __len__(self):
+		return self._n
 
 
